@@ -979,7 +979,7 @@ const SettingsModal = ({ config, onSave, onClose, onResetTiles }: { config: User
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl text-white"
+        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl text-white scrollbar-hide"
       >
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -1257,9 +1257,12 @@ const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-md shadow-2xl"
+        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl text-white scrollbar-hide"
       >
-        <h2 className="text-xl font-bold mb-6">Kachel anpassen</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold">Kachel anpassen</h2>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full"><X size={20} /></button>
+        </div>
         
         <div className="space-y-4">
           <div className="space-y-2">
