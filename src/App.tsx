@@ -116,10 +116,12 @@ const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
     config: {
       dashboardBgColor: '#000000',
       globalAccent: '#0071e3',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.7,
       effect3D: 'float-medium',
       theme: 'dark',
       globalGlow: 'none',
+      dashboardBgImage: ''
     }
   },
   'apple-light': {
@@ -127,22 +129,26 @@ const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
     config: {
       dashboardBgColor: '#f5f5f7',
       globalAccent: '#0071e3',
+      globalTextColor: '#1d1d1f',
       tileOpacity: 0.8,
       effect3D: 'float-medium',
       theme: 'light',
       globalGlow: 'none',
+      dashboardBgImage: ''
     }
   },
   'xiaomi': {
     name: 'Xiaomi HyperOS',
     config: {
-      dashboardBgColor: '#1a1a1a',
+      dashboardBgColor: '#0a0a0a',
       globalAccent: '#ff6700',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.9,
       effect3D: 'float-low',
       theme: 'dark',
       globalGlow: 'pulse',
       globalGlowColor: '#ff6700',
+      dashboardBgImage: ''
     }
   },
   'nothing': {
@@ -150,37 +156,43 @@ const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
     config: {
       dashboardBgColor: '#000000',
       globalAccent: '#ff0000',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.1,
       effect3D: 'none',
       theme: 'dark',
       globalGlow: 'static',
       globalGlowColor: '#ffffff',
+      dashboardBgImage: ''
     }
   },
   'sunset': {
     name: 'Sunset Glow',
     config: {
-      dashboardBgColor: '#2d1b36',
+      dashboardBgColor: '#1a0b1a',
       globalAccent: '#ff7e5f',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.6,
       effect3D: 'float-medium',
       theme: 'dark',
       fontFamily: 'outfit',
       globalGlow: 'pulse',
       globalGlowColor: '#feb47b',
+      dashboardBgImage: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=2000'
     }
   },
   'ocean': {
     name: 'Ocean Breeze',
     config: {
-      dashboardBgColor: '#0f2027',
+      dashboardBgColor: '#051015',
       globalAccent: '#2193b0',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.5,
       effect3D: 'float-high',
       theme: 'dark',
       fontFamily: 'space',
       globalGlow: 'static',
       globalGlowColor: '#6dd5ed',
+      dashboardBgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000'
     }
   },
   'neon': {
@@ -188,38 +200,44 @@ const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
     config: {
       dashboardBgColor: '#000000',
       globalAccent: '#ff00ff',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.3,
       effect3D: 'float-medium',
       theme: 'dark',
       fontFamily: 'mono',
       globalGlow: 'rainbow',
       globalGlowColor: '#00ffff',
+      dashboardBgImage: ''
     }
   },
   'candy': {
     name: 'Candy Pop',
     config: {
-      dashboardBgColor: '#ff9a9e',
-      globalAccent: '#fad0c4',
+      dashboardBgColor: '#fff0f0',
+      globalAccent: '#ff4d6d',
+      globalTextColor: '#4a1a1a',
       tileOpacity: 0.8,
       effect3D: 'float-low',
       theme: 'light',
       fontFamily: 'montserrat',
       globalGlow: 'pulse',
       globalGlowColor: '#ffecd2',
+      dashboardBgImage: ''
     }
   },
   'forest': {
     name: 'Forest Fresh',
     config: {
-      dashboardBgColor: '#134e5e',
+      dashboardBgColor: '#0a1a10',
       globalAccent: '#71b280',
+      globalTextColor: '#ffffff',
       tileOpacity: 0.7,
       effect3D: 'float-medium',
       theme: 'dark',
       fontFamily: 'sans',
       globalGlow: 'static',
       globalGlowColor: '#a8e063',
+      dashboardBgImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2000'
     }
   }
 };
@@ -310,7 +328,11 @@ const Tile = ({
       style={{
         gridColumn: `span ${tile.colSpan}`,
         gridRow: `span ${tile.rowSpan}`,
-        backgroundColor: tile.color ? `${tile.color}${Math.round((tile.opacity || config.tileOpacity) * 255).toString(16).padStart(2, '0')}` : `rgba(40, 40, 42, ${tile.opacity || config.tileOpacity})`,
+        backgroundColor: tile.color 
+          ? `${tile.color}${Math.round((tile.opacity || config.tileOpacity) * 255).toString(16).padStart(2, '0')}` 
+          : config.theme === 'dark' 
+            ? `rgba(255, 255, 255, ${0.05 * (tile.opacity || config.tileOpacity) * 10})` 
+            : `rgba(0, 0, 0, ${0.05 * (tile.opacity || config.tileOpacity) * 10})`,
         ...glowStyle
       }}
     >
@@ -318,7 +340,10 @@ const Tile = ({
       <div className={cn("absolute inset-0 pointer-events-none rounded-[inherit]", glowClass)} />
 
       <div className="flex justify-between items-center mb-2 z-10">
-        <div className="flex items-center gap-2 font-semibold text-sm opacity-80">
+        <div 
+          className="flex items-center gap-2 font-semibold text-sm opacity-100"
+          style={{ color: config.globalTextColor }}
+        >
           {tile.customIcon ? <span>{tile.customIcon}</span> : <TileIcon type={tile.type} />}
           <span>{tile.title}</span>
         </div>
@@ -422,14 +447,14 @@ const WeatherTile = ({ city }: { city: string }) => {
           <div className="text-4xl font-bold tracking-tighter tabular-nums">
             {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
           </div>
-          <div className="text-[10px] opacity-60 font-medium uppercase tracking-wider">
+          <div className="text-[10px] opacity-80 font-medium uppercase tracking-wider">
             {time.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })}
           </div>
         </div>
         {weather && (
           <div className="text-right">
             <div className="text-3xl font-light">{Math.round(weather.current.temperature_2m)}°</div>
-            <div className="text-[10px] opacity-60 font-medium">{weather.cityName}</div>
+            <div className="text-[10px] opacity-80 font-medium">{weather.cityName}</div>
           </div>
         )}
       </div>
@@ -438,7 +463,7 @@ const WeatherTile = ({ city }: { city: string }) => {
         <div className="flex justify-between mt-4 overflow-x-auto pb-2 gap-2">
           {weather.daily.time.slice(1, 6).map((time: string, i: number) => (
             <div key={time} className="flex flex-col items-center bg-white/5 rounded-2xl p-2 min-w-[45px]">
-              <div className="text-[9px] opacity-60">{new Date(time).toLocaleDateString('de-DE', { weekday: 'short' })}</div>
+              <div className="text-[9px] opacity-80">{new Date(time).toLocaleDateString('de-DE', { weekday: 'short' })}</div>
               <div className="text-sm my-1">{getWeatherEmoji(weather.daily.weather_code[i+1])}</div>
               <div className="text-[10px] font-semibold">{Math.round(weather.daily.temperature_2m_max[i+1])}°</div>
             </div>
@@ -494,7 +519,7 @@ const CalendarTile = () => {
       </div>
       <div className="grid grid-cols-7 gap-1 flex-1">
         {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
-          <div key={d} className="text-[10px] text-center opacity-40 font-bold">{d}</div>
+          <div key={d} className="text-[10px] text-center opacity-70 font-bold">{d}</div>
         ))}
         {days.map((day, i) => {
           const isToday = day === today.getDate() && 
@@ -533,7 +558,7 @@ const AppointmentsTile = ({ text, onOpenSettings }: { text: string; onOpenSettin
           </div>
         ))
       ) : (
-        <div className="flex flex-col items-center justify-center flex-1 opacity-40 italic text-sm">
+        <div className="flex flex-col items-center justify-center flex-1 opacity-60 italic text-sm">
           <Plus size={20} className="mb-2" />
           <span>Termine hinzufügen</span>
         </div>
@@ -548,7 +573,7 @@ const NoteTile = ({ content, onUpdate }: { content: string; onUpdate: (val: stri
       value={content || ''}
       onChange={(e) => onUpdate(e.target.value)}
       placeholder="Notiz schreiben..."
-      className="w-full h-full bg-transparent border-none outline-none resize-none text-sm leading-relaxed placeholder:opacity-30"
+      className="w-full h-full bg-transparent border-none outline-none resize-none text-sm leading-relaxed placeholder:opacity-50"
     />
   );
 };
@@ -880,7 +905,8 @@ export default function App() {
         backgroundImage: config.dashboardBgImage ? `url(${config.dashboardBgImage})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        color: config.globalTextColor
+        color: config.globalTextColor,
+        textShadow: config.theme === 'dark' ? '0 1px 3px rgba(0,0,0,0.5)' : 'none'
       }}
     >
       {/* Main Grid Area */}
@@ -1136,7 +1162,7 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl"
+        className="bg-zinc-900 border border-white/10 rounded-[40px] p-8 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl text-white"
       >
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -1417,12 +1443,22 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
           </section>
         </div>
 
-        <div className="flex gap-4 mt-12">
+        <div className="flex flex-col sm:flex-row gap-4 mt-12">
           <button 
             onClick={() => { onSave(local); onClose(); }}
             className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-3xl transition-all shadow-xl shadow-blue-500/20"
           >
             Speichern
+          </button>
+          <button 
+            onClick={() => {
+              if (confirm('Möchtest du alle Design-Einstellungen auf Standard zurücksetzen?')) {
+                setLocal(DEFAULT_CONFIG);
+              }
+            }}
+            className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-4 rounded-3xl transition-all"
+          >
+            Reset Design
           </button>
           <button 
             onClick={onClose}
