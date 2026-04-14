@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tablet Dashboard - Fully Kiosk Edition</title>
+    
+    <!-- CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #f4f4f5;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .tile-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+        const { motion, AnimatePresence } = FramerMotion;
+
+        // --- Fully Kiosk API Integration ---
+        const useFullyKiosk = () => {
+            useEffect(() => {
+                if (window.fully) {
+                    fully.keepScreenOn(true);
+                    fully.setScreenBrightness(255);
+                    console.log("Fully Kiosk API detected and configured.");
+                }
+            }, []);
+
+            const turnScreenOn = () => window.fully && fully.turnScreenOn();
+            const showToast = (msg) => window.fully && fully.showToast(msg);
+            
+            return { turnScreenOn, showToast };
+        };
+
+        // --- Components ---
+        const ClockTile = () => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => {
+                const t = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(t);
+            }, []);
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full">
+                    <div className="text-6xl font-bold tracking-tighter">
+                        {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-sm font-medium opacity-40 mt-1 uppercase tracking-widest">
+                        {time.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}
+                    </div>
+                </div>
+            );
+        };
+
+        const WeatherTile = () => {
+            return (
+                <div className="flex flex-col justify-between h-full p-2">
+                    <div className="flex justify-between items-start">
+                        <div className="text-4xl">☀️</div>
+                        <div className="text-right">
+                            <div className="text-3xl font-bold">22°</div>
+                            <div className="text-xs opacity-40">Sonnig</div>
+                        </div>
+                    </div>
+                    <div className="text-xs font-medium opacity-60">Berlin, DE</div>
+                </div>
+            );
+        };
+
+        const Tile = ({ children, title, colSpan = 2, rowSpan = 2 }) => (
+            <motion.div 
+                whileTap={{ scale: 0.98 }}
+                className={`glass rounded-[2.5rem] p-6 relative overflow-hidden flex flex-col`}
+                style={{ 
+                    gridColumn: `span ${colSpan}`, 
+                    gridRow: `span ${rowSpan}` 
+                }}
+            >
+                {title && <div className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-4">{title}</div>}
+                <div className="flex-1 overflow-hidden">
+                    {children}
+                </div>
+            </motion.div>
+        );
+
+        // --- Main App ---
+        const App = () => {
+            const fully = useFullyKiosk();
+            const [activeView, setActiveView] = useState('home');
+
+            return (
+                <div className="fixed inset-0 flex flex-col p-6 gap-6">
+                    {/* Header */}
+                    <header className="flex justify-between items-center px-4">
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-bold tracking-tight">Guten Tag</h1>
+                            <p className="text-xs opacity-40 font-medium">Willkommen auf deinem Dashboard</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="glass px-4 py-2 rounded-full text-xs font-bold">24.4°C Innen</div>
+                            <div className="glass px-4 py-2 rounded-full text-xs font-bold">62% Feuchte</div>
+                        </div>
+                    </header>
+
+                    {/* Grid */}
+                    <main className="flex-1 grid grid-cols-6 grid-rows-4 gap-4">
+                        <Tile title="Zeit" colSpan={2} rowSpan={2}>
+                            <ClockTile />
+                        </Tile>
+                        
+                        <Tile title="Wetter" colSpan={2} rowSpan={1}>
+                            <WeatherTile />
+                        </Tile>
+
+                        <Tile title="Musik" colSpan={2} rowSpan={2}>
+                            <div className="flex flex-col items-center justify-center h-full gap-4">
+                                <div className="w-16 h-16 bg-green-500/20 rounded-3xl flex items-center justify-center">
+                                    <i data-lucide="music" className="text-green-400"></i>
+                                </div>
+                                <button className="bg-green-500 text-black font-bold px-6 py-2 rounded-full text-xs">Spotify</button>
+                            </div>
+                        </Tile>
+
+                        <Tile title="Termine" colSpan={2} rowSpan={2}>
+                            <div className="space-y-2">
+                                <div className="bg-white/5 p-3 rounded-2xl text-xs border border-white/5">14:00 - Meeting</div>
+                                <div className="bg-white/5 p-3 rounded-2xl text-xs border border-white/5">18:30 - Fitness</div>
+                                <div className="bg-white/5 p-3 rounded-2xl text-xs border border-white/5 opacity-40 italic">Keine weiteren Termine</div>
+                            </div>
+                        </Tile>
+
+                        <Tile title="Slideshow" colSpan={2} rowSpan={2}>
+                            <div className="absolute inset-0 bg-zinc-800 flex items-center justify-center">
+                                <img src="https://picsum.photos/seed/tablet/800/600" className="w-full h-full object-cover opacity-60" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            </div>
+                        </Tile>
+
+                        <Tile title="Notizen" colSpan={2} rowSpan={1}>
+                            <textarea 
+                                className="w-full h-full bg-transparent border-none outline-none text-xs resize-none opacity-60"
+                                placeholder="Notiz schreiben..."
+                            ></textarea>
+                        </Tile>
+                    </main>
+
+                    {/* Navigation */}
+                    <nav className="h-20 flex items-center justify-center gap-4">
+                        <div className="glass p-2 rounded-full flex gap-2">
+                            <button onClick={() => setActiveView('home')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeView === 'home' ? 'bg-white text-black' : 'opacity-40'}`}>Home</button>
+                            <button onClick={() => setActiveView('media')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeView === 'media' ? 'bg-white text-black' : 'opacity-40'}`}>Media</button>
+                            <button onClick={() => setActiveView('tools')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${activeView === 'tools' ? 'bg-white text-black' : 'opacity-40'}`}>Tools</button>
+                        </div>
+                    </nav>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Initialize Lucide icons after render
+        setTimeout(() => lucide.createIcons(), 500);
+    </script>
+</body>
+</html>
