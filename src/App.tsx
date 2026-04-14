@@ -39,6 +39,8 @@ interface TileConfig {
   glowEffect?: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
   glowColor?: string;
   content?: string;
+  bgImageFit?: 'cover' | 'contain' | 'auto';
+  bgImagePosition?: string;
 }
 
 interface UserConfig {
@@ -59,6 +61,8 @@ interface UserConfig {
   layoutTheme: string;
   isKioskMode: boolean;
   fontFamily: 'sans' | 'space' | 'serif' | 'mono' | 'outfit' | 'montserrat';
+  dashboardBgImageFit?: 'cover' | 'contain' | 'auto';
+  dashboardBgImagePosition?: string;
   globalGlow: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
   globalGlowColor: string;
   globalGlowSize: number;
@@ -354,9 +358,12 @@ const Tile = ({
       {/* Background Image if exists */}
       {tile.bgImage && (
         <div 
-          className="absolute inset-0 -z-10 bg-cover bg-center"
+          className="absolute inset-0 -z-10"
           style={{ 
             backgroundImage: `url(${tile.bgImage})`,
+            backgroundSize: tile.bgImageFit || 'cover',
+            backgroundPosition: tile.bgImagePosition || 'center',
+            backgroundRepeat: 'no-repeat',
             opacity: tile.opacity ?? 0.4
           }}
         />
@@ -716,8 +723,9 @@ export default function App() {
       style={{ 
         backgroundColor: config.dashboardBgColor,
         backgroundImage: config.dashboardBgImage ? `url(${config.dashboardBgImage})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: config.dashboardBgImageFit || 'cover',
+        backgroundPosition: config.dashboardBgImagePosition || 'center',
+        backgroundRepeat: 'no-repeat',
         color: config.globalTextColor,
         textShadow: config.theme === 'dark' ? '0 1px 3px rgba(0,0,0,0.5)' : 'none'
       }}
@@ -1115,7 +1123,7 @@ const SettingsModal = ({ config, onSave, onClose, onResetTiles }: { config: User
                   <option value="float-high">Stark</option>
                 </select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <label className="text-xs font-bold opacity-60">Dashboard Hintergrund</label>
                 <div className="flex gap-2">
                   <input 
@@ -1134,6 +1142,37 @@ const SettingsModal = ({ config, onSave, onClose, onResetTiles }: { config: User
                     type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" 
                   />
                 </div>
+                
+                {local.dashboardBgImage && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase opacity-40">Anpassung</label>
+                      <select 
+                        value={local.dashboardBgImageFit || 'cover'} 
+                        onChange={e => setLocal({ ...local, dashboardBgImageFit: e.target.value as any })}
+                        className="w-full bg-zinc-800 border border-white/10 rounded-xl px-3 py-2 text-xs"
+                      >
+                        <option value="cover">Ausfüllen (Cover)</option>
+                        <option value="contain">Einpassen (Contain)</option>
+                        <option value="auto">Original (Auto)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase opacity-40">Position</label>
+                      <select 
+                        value={local.dashboardBgImagePosition || 'center'} 
+                        onChange={e => setLocal({ ...local, dashboardBgImagePosition: e.target.value })}
+                        className="w-full bg-zinc-800 border border-white/10 rounded-xl px-3 py-2 text-xs"
+                      >
+                        <option value="center">Mitte</option>
+                        <option value="top">Oben</option>
+                        <option value="bottom">Unten</option>
+                        <option value="left">Links</option>
+                        <option value="right">Rechts</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
                 <div className="flex flex-col">
@@ -1311,14 +1350,53 @@ const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave
               />
             </div>
             {local.bgImage && (
-              <div className="relative w-full h-20 rounded-xl overflow-hidden border border-white/10 mt-2">
-                <img src={local.bgImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <button 
-                  onClick={() => setLocal({ ...local, bgImage: '' })}
-                  className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
-                >
-                  <X size={12} />
-                </button>
+              <div className="space-y-4 mt-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                <div className="relative w-full h-24 rounded-xl overflow-hidden border border-white/10">
+                  <div 
+                    className="absolute inset-0"
+                    style={{ 
+                      backgroundImage: `url(${local.bgImage})`,
+                      backgroundSize: local.bgImageFit || 'cover',
+                      backgroundPosition: local.bgImagePosition || 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }}
+                  />
+                  <button 
+                    onClick={() => setLocal({ ...local, bgImage: '' })}
+                    className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white z-10"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase opacity-40">Anpassung</label>
+                    <select 
+                      value={local.bgImageFit || 'cover'} 
+                      onChange={e => setLocal({ ...local, bgImageFit: e.target.value as any })}
+                      className="w-full bg-zinc-800 border border-white/10 rounded-xl px-3 py-2 text-xs"
+                    >
+                      <option value="cover">Ausfüllen (Cover)</option>
+                      <option value="contain">Einpassen (Contain)</option>
+                      <option value="auto">Original (Auto)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase opacity-40">Position</label>
+                    <select 
+                      value={local.bgImagePosition || 'center'} 
+                      onChange={e => setLocal({ ...local, bgImagePosition: e.target.value })}
+                      className="w-full bg-zinc-800 border border-white/10 rounded-xl px-3 py-2 text-xs"
+                    >
+                      <option value="center">Mitte</option>
+                      <option value="top">Oben</option>
+                      <option value="bottom">Unten</option>
+                      <option value="left">Links</option>
+                      <option value="right">Rechts</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
           </div>
