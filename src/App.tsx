@@ -38,6 +38,7 @@ interface TileConfig {
   customIcon?: string;
   glowEffect?: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
   glowColor?: string;
+  content?: string;
 }
 
 interface UserConfig {
@@ -378,9 +379,11 @@ function getWeatherEmoji(code: number) {
 }
 
 const CalendarTile = () => {
+  const [viewDate, setViewDate] = useState(new Date());
   const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+  
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
   const days = Array.from({ length: 42 }, (_, i) => {
@@ -388,47 +391,81 @@ const CalendarTile = () => {
     return day > 0 && day <= daysInMonth ? day : null;
   });
 
+  const changeMonth = (offset: number) => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="text-center font-semibold mb-2 text-sm">
-        {today.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        <div className="font-semibold text-sm">
+          {viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
+        </div>
+        <button onClick={() => changeMonth(1)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+          <ChevronRight size={16} />
+        </button>
       </div>
       <div className="grid grid-cols-7 gap-1 flex-1">
         {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
           <div key={d} className="text-[10px] text-center opacity-40 font-bold">{d}</div>
         ))}
-        {days.map((day, i) => (
-          <div 
-            key={i} 
-            className={cn(
-              "flex items-center justify-center text-xs rounded-lg aspect-square",
-              day === today.getDate() ? "bg-blue-500 text-white font-bold" : "hover:bg-white/5",
-              !day && "opacity-0"
-            )}
-          >
-            {day}
-          </div>
-        ))}
+        {days.map((day, i) => {
+          const isToday = day === today.getDate() && 
+                          viewDate.getMonth() === today.getMonth() && 
+                          viewDate.getFullYear() === today.getFullYear();
+          return (
+            <div 
+              key={i} 
+              className={cn(
+                "flex items-center justify-center text-xs rounded-lg aspect-square transition-colors",
+                isToday ? "bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/40" : "hover:bg-white/5",
+                !day && "opacity-0"
+              )}
+            >
+              {day}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const AppointmentsTile = ({ text }: { text: string }) => {
+const AppointmentsTile = ({ text, onOpenSettings }: { text: string; onOpenSettings: () => void }) => {
   const appointments = text.split('\n').filter(l => l.trim()).slice(0, 5);
 
   return (
-    <div className="flex flex-col gap-2 overflow-y-auto pr-1">
+    <div 
+      className="flex flex-col gap-2 overflow-y-auto pr-1 cursor-pointer group h-full"
+      onClick={onOpenSettings}
+    >
       {appointments.length > 0 ? (
         appointments.map((app, i) => (
-          <div key={i} className="bg-white/5 p-2 rounded-xl border border-white/5 text-sm">
+          <div key={i} className="bg-white/5 p-2 rounded-xl border border-white/5 text-sm group-hover:bg-white/10 transition-colors">
             {app}
           </div>
         ))
       ) : (
-        <div className="text-sm opacity-40 italic mt-4 text-center">Keine Termine</div>
+        <div className="flex flex-col items-center justify-center flex-1 opacity-40 italic text-sm">
+          <Plus size={20} className="mb-2" />
+          <span>Termine hinzufügen</span>
+        </div>
       )}
     </div>
+  );
+};
+
+const NoteTile = ({ content, onUpdate }: { content: string; onUpdate: (val: string) => void }) => {
+  return (
+    <textarea
+      value={content || ''}
+      onChange={(e) => onUpdate(e.target.value)}
+      placeholder="Notiz schreiben..."
+      className="w-full h-full bg-transparent border-none outline-none resize-none text-sm leading-relaxed placeholder:opacity-30"
+    />
   );
 };
 
@@ -678,7 +715,7 @@ export default function App() {
                 onEdit={setEditingTileId}
                 onDelete={deleteTile}
               >
-                {renderTileContent(tile, config, googlePhotos)}
+                {renderTileContent(tile, config, googlePhotos, updateTile, () => setIsSettingsOpen(true))}
               </Tile>
             ))}
           </AnimatePresence>
@@ -816,15 +853,22 @@ export default function App() {
   );
 }
 
-function renderTileContent(tile: TileConfig, config: UserConfig, googlePhotos: string[] = []) {
+function renderTileContent(
+  tile: TileConfig, 
+  config: UserConfig, 
+  googlePhotos: string[] = [], 
+  onUpdateTile: (id: string, updates: Partial<TileConfig>) => void,
+  onOpenSettings: () => void
+) {
   const allPhotos = [...config.onlineImageUrls, ...config.localPhotoUrls, ...googlePhotos];
   
   switch (tile.type) {
     case 'clock': return <ClockTile />;
     case 'weather': return <WeatherTile city={config.city} />;
     case 'calendar': return <CalendarTile />;
-    case 'appointments': return <AppointmentsTile text={config.appointmentsText} />;
+    case 'appointments': return <AppointmentsTile text={config.appointmentsText} onOpenSettings={onOpenSettings} />;
     case 'slideshow': return <SlideshowTile urls={allPhotos} interval={config.slideshowInterval} />;
+    case 'note': return <NoteTile content={tile.content || ''} onUpdate={(val) => onUpdateTile(tile.id, { content: val })} />;
     case 'spotify': return <AppTile type="spotify" url={config.spotifyUrl} title="Spotify" />;
     case 'youtube': return <AppTile type="youtube" url={config.youtubeUrl} title="YouTube" />;
     case 'amazonmusic': return <AppTile type="amazonmusic" url={config.amazonMusicUrl} title="Amazon Music" />;
