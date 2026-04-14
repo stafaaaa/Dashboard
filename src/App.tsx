@@ -723,12 +723,43 @@ export default function App() {
                 <Settings size={20} />
               </button>
               {editMode && (
-                <button 
-                  onClick={() => addTile('note')}
-                  className="p-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-full transition-all"
-                >
-                  <Plus size={20} />
-                </button>
+                <div className="flex gap-1 bg-white/5 p-1 rounded-full border border-white/10">
+                  <button 
+                    onClick={() => addTile('note')}
+                    className="p-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-full transition-all"
+                    title="Notiz"
+                  >
+                    <StickyNote size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('spotify')}
+                    className="p-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-full transition-all"
+                    title="Spotify"
+                  >
+                    <Music size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('amazonmusic')}
+                    className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-full transition-all"
+                    title="Amazon Music"
+                  >
+                    <Play size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('youtube')}
+                    className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full transition-all"
+                    title="YouTube"
+                  >
+                    <Youtube size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('slideshow')}
+                    className="p-2 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 rounded-full transition-all"
+                    title="Slideshow"
+                  >
+                    <ImageIcon size={20} />
+                  </button>
+                </div>
               )}
             </div>
           </motion.nav>
@@ -1041,6 +1072,22 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
                 <input 
                   type="text" value={local.spotifyUrl} 
                   onChange={e => setLocal({ ...local, spotifyUrl: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold opacity-60">Amazon Music URL</label>
+                <input 
+                  type="text" value={local.amazonMusicUrl} 
+                  onChange={e => setLocal({ ...local, amazonMusicUrl: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold opacity-60">YouTube URL</label>
+                <input 
+                  type="text" value={local.youtubeUrl} 
+                  onChange={e => setLocal({ ...local, youtubeUrl: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
                 />
               </div>
