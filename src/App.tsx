@@ -59,6 +59,7 @@ interface UserConfig {
   effect3D: 'none' | 'float-low' | 'float-medium' | 'float-high';
   layoutTheme: string;
   isKioskMode: boolean;
+  fontFamily: 'sans' | 'space' | 'serif' | 'mono' | 'outfit' | 'montserrat';
   googlePhotosTokens?: any;
   localPhotoUrls: string[];
   globalGlow: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
@@ -69,8 +70,7 @@ interface UserConfig {
 
 // --- Constants ---
 const DEFAULT_TILES: TileConfig[] = [
-  { id: '1', type: 'clock', title: 'Uhrzeit', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'pulse', glowColor: '#0071e3' },
-  { id: '2', type: 'weather', title: 'Wetter', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'pulse', glowColor: '#0071e3' },
+  { id: '1', type: 'weather', title: 'Wetter & Zeit', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'pulse', glowColor: '#0071e3' },
   { id: '3', type: 'calendar', title: 'Kalender', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'static', glowColor: '#af52de' },
   { id: '4', type: 'appointments', title: 'Termine', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'static', glowColor: '#ff9f0a' },
   { id: '5', type: 'spotify', title: 'Spotify', colSpan: 2, rowSpan: 1, view: 'media', glowEffect: 'pulse', glowColor: '#28cd41' },
@@ -97,6 +97,7 @@ const DEFAULT_CONFIG: UserConfig = {
   effect3D: 'float-medium',
   layoutTheme: 'apple-dark',
   isKioskMode: false,
+  fontFamily: 'sans',
   googlePhotosTokens: null,
   localPhotoUrls: [],
   globalGlow: 'none',
@@ -154,6 +155,71 @@ const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
       theme: 'dark',
       globalGlow: 'static',
       globalGlowColor: '#ffffff',
+    }
+  },
+  'sunset': {
+    name: 'Sunset Glow',
+    config: {
+      dashboardBgColor: '#2d1b36',
+      globalAccent: '#ff7e5f',
+      tileOpacity: 0.6,
+      effect3D: 'float-medium',
+      theme: 'dark',
+      fontFamily: 'outfit',
+      globalGlow: 'pulse',
+      globalGlowColor: '#feb47b',
+    }
+  },
+  'ocean': {
+    name: 'Ocean Breeze',
+    config: {
+      dashboardBgColor: '#0f2027',
+      globalAccent: '#2193b0',
+      tileOpacity: 0.5,
+      effect3D: 'float-high',
+      theme: 'dark',
+      fontFamily: 'space',
+      globalGlow: 'static',
+      globalGlowColor: '#6dd5ed',
+    }
+  },
+  'neon': {
+    name: 'Neon Night',
+    config: {
+      dashboardBgColor: '#000000',
+      globalAccent: '#ff00ff',
+      tileOpacity: 0.3,
+      effect3D: 'float-medium',
+      theme: 'dark',
+      fontFamily: 'mono',
+      globalGlow: 'rainbow',
+      globalGlowColor: '#00ffff',
+    }
+  },
+  'candy': {
+    name: 'Candy Pop',
+    config: {
+      dashboardBgColor: '#ff9a9e',
+      globalAccent: '#fad0c4',
+      tileOpacity: 0.8,
+      effect3D: 'float-low',
+      theme: 'light',
+      fontFamily: 'montserrat',
+      globalGlow: 'pulse',
+      globalGlowColor: '#ffecd2',
+    }
+  },
+  'forest': {
+    name: 'Forest Fresh',
+    config: {
+      dashboardBgColor: '#134e5e',
+      globalAccent: '#71b280',
+      tileOpacity: 0.7,
+      effect3D: 'float-medium',
+      theme: 'dark',
+      fontFamily: 'sans',
+      globalGlow: 'static',
+      globalGlowColor: '#a8e063',
     }
   }
 };
@@ -322,6 +388,12 @@ const ClockTile = () => {
 
 const WeatherTile = ({ city }: { city: string }) => {
   const [weather, setWeather] = useState<any>(null);
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -343,26 +415,38 @@ const WeatherTile = ({ city }: { city: string }) => {
     return () => clearInterval(interval);
   }, [city]);
 
-  if (!weather) return <div className="flex items-center justify-center h-full opacity-40">Lade Wetter...</div>;
-
   return (
     <div className="flex flex-col h-full justify-between">
-      <div className="flex items-center gap-4">
-        <div className="text-5xl font-light">{Math.round(weather.current.temperature_2m)}°</div>
+      <div className="flex justify-between items-start">
         <div className="flex flex-col">
-          <div className="text-lg font-medium">{weather.cityName}</div>
-          <div className="text-sm opacity-60">H:{Math.round(weather.daily.temperature_2m_max[0])}° L:{Math.round(weather.daily.temperature_2m_min[0])}°</div>
-        </div>
-      </div>
-      <div className="flex justify-between mt-4 overflow-x-auto pb-2 gap-2">
-        {weather.daily.time.slice(1, 6).map((time: string, i: number) => (
-          <div key={time} className="flex flex-col items-center bg-white/5 rounded-2xl p-2 min-w-[50px]">
-            <div className="text-xs opacity-60">{new Date(time).toLocaleDateString('de-DE', { weekday: 'short' })}</div>
-            <div className="text-lg my-1">{getWeatherEmoji(weather.daily.weather_code[i+1])}</div>
-            <div className="text-xs font-semibold">{Math.round(weather.daily.temperature_2m_max[i+1])}°</div>
+          <div className="text-4xl font-bold tracking-tighter tabular-nums">
+            {time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
           </div>
-        ))}
+          <div className="text-[10px] opacity-60 font-medium uppercase tracking-wider">
+            {time.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })}
+          </div>
+        </div>
+        {weather && (
+          <div className="text-right">
+            <div className="text-3xl font-light">{Math.round(weather.current.temperature_2m)}°</div>
+            <div className="text-[10px] opacity-60 font-medium">{weather.cityName}</div>
+          </div>
+        )}
       </div>
+
+      {weather ? (
+        <div className="flex justify-between mt-4 overflow-x-auto pb-2 gap-2">
+          {weather.daily.time.slice(1, 6).map((time: string, i: number) => (
+            <div key={time} className="flex flex-col items-center bg-white/5 rounded-2xl p-2 min-w-[45px]">
+              <div className="text-[9px] opacity-60">{new Date(time).toLocaleDateString('de-DE', { weekday: 'short' })}</div>
+              <div className="text-sm my-1">{getWeatherEmoji(weather.daily.weather_code[i+1])}</div>
+              <div className="text-[10px] font-semibold">{Math.round(weather.daily.temperature_2m_max[i+1])}°</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center opacity-20 text-xs py-4">Lade Wetter...</div>
+      )}
     </div>
   );
 };
@@ -687,11 +771,16 @@ export default function App() {
 
   return (
     <div 
-      className={cn(
-        "fixed inset-0 flex flex-col overflow-hidden transition-all duration-700",
-        config.theme === 'dark' ? "bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900",
-        config.layoutTheme === 'nothing' ? "font-mono" : "font-sans"
-      )}
+        className={cn(
+          "fixed inset-0 flex flex-col overflow-hidden transition-all duration-700",
+          config.theme === 'dark' ? "bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900",
+          config.fontFamily === 'sans' && "font-sans",
+          config.fontFamily === 'space' && "font-space",
+          config.fontFamily === 'serif' && "font-serif",
+          config.fontFamily === 'mono' && "font-mono",
+          config.fontFamily === 'outfit' && "font-outfit",
+          config.fontFamily === 'montserrat' && "font-montserrat"
+        )}
       style={{ 
         backgroundColor: config.dashboardBgColor,
         backgroundImage: config.dashboardBgImage ? `url(${config.dashboardBgImage})` : 'none',
@@ -796,6 +885,13 @@ export default function App() {
                   >
                     <ImageIcon size={20} />
                   </button>
+                  <button 
+                    onClick={() => addTile('app')}
+                    className="p-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-full transition-all"
+                    title="App hinzufügen"
+                  >
+                    <Plus size={20} />
+                  </button>
                 </div>
               )}
             </div>
@@ -869,6 +965,7 @@ function renderTileContent(
     case 'appointments': return <AppointmentsTile text={config.appointmentsText} onOpenSettings={onOpenSettings} />;
     case 'slideshow': return <SlideshowTile urls={allPhotos} interval={config.slideshowInterval} />;
     case 'note': return <NoteTile content={tile.content || ''} onUpdate={(val) => onUpdateTile(tile.id, { content: val })} />;
+    case 'app': return <AppTile type="app" url={tile.appLink || '#'} title={tile.title} />;
     case 'spotify': return <AppTile type="spotify" url={config.spotifyUrl} title="Spotify" />;
     case 'youtube': return <AppTile type="youtube" url={config.youtubeUrl} title="YouTube" />;
     case 'amazonmusic': return <AppTile type="amazonmusic" url={config.amazonMusicUrl} title="Amazon Music" />;
@@ -950,13 +1047,13 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
         <div className="space-y-6">
           <section>
             <h3 className="text-sm font-bold uppercase tracking-widest opacity-40 mb-4">Themes</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {Object.entries(THEMES).map(([id, theme]) => (
                 <button
                   key={id}
                   onClick={() => applyTheme(id)}
                   className={cn(
-                    "p-3 rounded-2xl border transition-all text-xs font-bold",
+                    "p-3 rounded-2xl border transition-all text-xs font-bold text-center",
                     local.layoutTheme === id 
                       ? "bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/20" 
                       : "bg-white/5 border-white/10 hover:bg-white/10"
@@ -1159,6 +1256,21 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-xs font-bold opacity-60">Schriftart</label>
+                <select 
+                  value={local.fontFamily} 
+                  onChange={e => setLocal({ ...local, fontFamily: e.target.value as any })}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
+                >
+                  <option value="sans">Inter (Standard)</option>
+                  <option value="space">Space Grotesk (Modern)</option>
+                  <option value="outfit">Outfit (Clean)</option>
+                  <option value="montserrat">Montserrat (Klassisch)</option>
+                  <option value="serif">Playfair Display (Serif)</option>
+                  <option value="mono">JetBrains Mono (Technisch)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
                 <label className="text-xs font-bold opacity-60">3D Effekt</label>
                 <select 
                   value={local.effect3D} 
@@ -1235,6 +1347,18 @@ const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
             />
           </div>
+
+          {local.type === 'app' && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold opacity-60">App URL / Deep Link (z.B. instagram://)</label>
+              <input 
+                type="text" value={local.appLink || ''} 
+                onChange={e => setLocal({ ...local, appLink: e.target.value })}
+                placeholder="https://... oder app://"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
+              />
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
