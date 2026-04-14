@@ -22,7 +22,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 // --- Types ---
-type TileType = 'clock' | 'weather' | 'calendar' | 'slideshow' | 'appointments' | 'spotify' | 'youtube' | 'amazonmusic' | 'recipe' | 'note' | 'app';
+type TileType = 'clock' | 'weather' | 'calendar' | 'appointments' | 'spotify' | 'youtube' | 'amazonmusic' | 'recipe' | 'note' | 'app';
 
 interface TileConfig {
   id: string;
@@ -43,7 +43,6 @@ interface TileConfig {
 
 interface UserConfig {
   city: string;
-  slideshowInterval: number;
   spotifyUrl: string;
   youtubeUrl: string;
   amazonMusicUrl: string;
@@ -60,12 +59,9 @@ interface UserConfig {
   layoutTheme: string;
   isKioskMode: boolean;
   fontFamily: 'sans' | 'space' | 'serif' | 'mono' | 'outfit' | 'montserrat';
-  googlePhotosTokens?: any;
-  localPhotoUrls: string[];
   globalGlow: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
   globalGlowColor: string;
   globalGlowSize: number;
-  onlineImageUrls: string[];
 }
 
 // --- Constants ---
@@ -76,12 +72,10 @@ const DEFAULT_TILES: TileConfig[] = [
   { id: '5', type: 'spotify', title: 'Spotify', colSpan: 2, rowSpan: 1, view: 'media', glowEffect: 'pulse', glowColor: '#28cd41' },
   { id: '6', type: 'youtube', title: 'YouTube', colSpan: 2, rowSpan: 1, view: 'media', glowEffect: 'pulse', glowColor: '#ff0000' },
   { id: '7', type: 'amazonmusic', title: 'Amazon Music', colSpan: 2, rowSpan: 1, view: 'media', glowEffect: 'pulse', glowColor: '#00a8e1' },
-  { id: '8', type: 'slideshow', title: 'Slideshow', colSpan: 4, rowSpan: 2, view: 'home', glowEffect: 'none' },
 ];
 
 const DEFAULT_CONFIG: UserConfig = {
   city: 'Düsseldorf',
-  slideshowInterval: 6,
   spotifyUrl: 'spotify:',
   youtubeUrl: 'vnd.youtube://',
   amazonMusicUrl: 'amazonmusic://',
@@ -98,16 +92,9 @@ const DEFAULT_CONFIG: UserConfig = {
   layoutTheme: 'apple-dark',
   isKioskMode: false,
   fontFamily: 'sans',
-  googlePhotosTokens: null,
-  localPhotoUrls: [],
   globalGlow: 'none',
   globalGlowColor: '#0071e3',
-  globalGlowSize: 2,
-  onlineImageUrls: [
-    'https://picsum.photos/seed/tech1/1200/800',
-    'https://picsum.photos/seed/tech2/1200/800',
-    'https://picsum.photos/seed/tech3/1200/800'
-  ],
+  globalGlowSize: 2
 };
 
 const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
@@ -366,8 +353,11 @@ const Tile = ({
       {/* Background Image if exists */}
       {tile.bgImage && (
         <div 
-          className="absolute inset-0 -z-10 bg-cover bg-center opacity-40"
-          style={{ backgroundImage: `url(${tile.bgImage})` }}
+          className="absolute inset-0 -z-10 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url(${tile.bgImage})`,
+            opacity: tile.opacity ?? 0.4
+          }}
         />
       )}
     </motion.div>
@@ -379,7 +369,6 @@ const TileIcon = ({ type }: { type: TileType }) => {
     case 'clock': return <Clock size={18} />;
     case 'weather': return <Cloud size={18} />;
     case 'calendar': return <CalendarIcon size={18} />;
-    case 'slideshow': return <ImageIcon size={18} />;
     case 'appointments': return <StickyNote size={18} />;
     case 'spotify': return <Music size={18} />;
     case 'youtube': return <Youtube size={18} />;
@@ -578,162 +567,6 @@ const NoteTile = ({ content, onUpdate }: { content: string; onUpdate: (val: stri
   );
 };
 
-const FullscreenGallery = ({ urls, interval, onClose }: { urls: string[]; interval: number; onClose: () => void }) => {
-  const [index, setIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<'slideshow' | 'grid'>('slideshow');
-  const [isPaused, setIsPaused] = useState(false);
-
-  useEffect(() => {
-    if (viewMode !== 'slideshow' || isPaused || urls.length <= 1) return;
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % urls.length);
-    }, interval * 1000);
-    return () => clearInterval(timer);
-  }, [urls, interval, viewMode, isPaused]);
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-black flex flex-col"
-    >
-      <div className="absolute top-6 right-6 z-[210] flex gap-4">
-        <button 
-          onClick={() => setIsPaused(!isPaused)}
-          className={cn(
-            "p-3 rounded-full backdrop-blur-md transition-all",
-            isPaused ? "bg-red-500/20 text-red-400" : "bg-white/10 text-white hover:bg-white/20"
-          )}
-          title={isPaused ? "Wiedergabe starten" : "Wiedergabe pausieren"}
-        >
-          {isPaused ? <Play size={24} /> : <Pause size={24} />}
-        </button>
-        <button 
-          onClick={() => setViewMode(viewMode === 'slideshow' ? 'grid' : 'slideshow')}
-          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all text-white"
-        >
-          {viewMode === 'slideshow' ? <LayoutGrid size={24} /> : <ImageIcon size={24} />}
-        </button>
-        <button 
-          onClick={onClose}
-          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all text-white"
-        >
-          <X size={24} />
-        </button>
-      </div>
-
-      {viewMode === 'slideshow' ? (
-        <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={urls[index]}
-              src={urls[index]}
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              className="max-w-full max-h-full object-contain"
-              referrerPolicy="no-referrer"
-            />
-          </AnimatePresence>
-          
-          <button 
-            onClick={() => setIndex((prev) => (prev - 1 + urls.length) % urls.length)}
-            className="absolute left-6 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-md transition-all"
-          >
-            <ChevronLeft size={32} />
-          </button>
-          <button 
-            onClick={() => setIndex((prev) => (prev + 1) % urls.length)}
-            className="absolute right-6 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-md transition-all"
-          >
-            <ChevronRight size={32} />
-          </button>
-          
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-            {urls.map((_, i) => (
-              <div key={i} className={cn("w-2 h-2 rounded-full transition-all", i === index ? "bg-white w-6" : "bg-white/20")} />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-12 pt-24">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {urls.map((url, i) => (
-              <motion.div 
-                key={i}
-                whileHover={{ scale: 1.05 }}
-                onClick={() => { setIndex(i); setViewMode('slideshow'); }}
-                className="aspect-square rounded-2xl overflow-hidden cursor-pointer border border-white/10"
-              >
-                <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-};
-
-const SlideshowTile = ({ urls, interval, onExpand }: { urls: string[]; interval: number; onExpand: () => void }) => {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (urls.length <= 1) return;
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % urls.length);
-    }, interval * 1000);
-    return () => clearInterval(timer);
-  }, [urls, interval]);
-
-  if (urls.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full opacity-40 gap-2">
-        <ImageIcon size={32} />
-        <span className="text-xs">Keine Bilder in Einstellungen hinzufügen</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="absolute inset-0 overflow-hidden rounded-[inherit] group">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={urls[index]}
-          src={urls[index]}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      </AnimatePresence>
-      
-      {/* Overlay Controls */}
-      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <button 
-          onClick={(e) => { e.stopPropagation(); onExpand(); }}
-          className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all transform hover:scale-110"
-        >
-          <Maximize2 size={24} />
-        </button>
-      </div>
-
-      <div className="absolute bottom-2 right-2 flex gap-1">
-        {urls.map((_, i) => (
-          <div 
-            key={i} 
-            className={cn(
-              "w-1.5 h-1.5 rounded-full transition-all",
-              i === index ? "bg-white w-3" : "bg-white/30"
-            )} 
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const AppTile = ({ type, url, title }: { type: TileType; url: string; title: string }) => {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -759,43 +592,8 @@ export default function App() {
   const [activeView, setActiveView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingTileId, setEditingTileId] = useState<string | null>(null);
-  const [isFullscreenGallery, setIsFullscreenGallery] = useState(false);
   const [showNav, setShowNav] = useState(true);
-  const [googlePhotos, setGooglePhotos] = useState<string[]>([]);
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Fetch Google Photos if tokens exist
-  useEffect(() => {
-    const fetchGooglePhotos = async () => {
-      if (!config.googlePhotosTokens?.access_token) return;
-      try {
-        const res = await fetch('/api/photos/list', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tokens: config.googlePhotosTokens })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const urls = data.mediaItems?.map((item: any) => item.baseUrl) || [];
-          setGooglePhotos(urls);
-        }
-      } catch (err) {
-        console.error('Failed to fetch Google Photos:', err);
-      }
-    };
-    fetchGooglePhotos();
-  }, [config.googlePhotosTokens]);
-
-  // OAuth Listener
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'GOOGLE_PHOTOS_AUTH_SUCCESS') {
-        setConfig(prev => ({ ...prev, googlePhotosTokens: event.data.tokens }));
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   // Kiosk Mode: Auto-hide nav
   useEffect(() => {
@@ -902,11 +700,6 @@ export default function App() {
 
   const currentTiles = useMemo(() => tiles.filter(t => t.view === activeView), [tiles, activeView]);
 
-  // Gallery Trigger
-  useEffect(() => {
-    (window as any).openGallery = () => setIsFullscreenGallery(true);
-  }, []);
-
   return (
     <div 
         className={cn(
@@ -944,7 +737,7 @@ export default function App() {
                 onEdit={setEditingTileId}
                 onDelete={deleteTile}
               >
-                {renderTileContent(tile, config, googlePhotos, updateTile, () => setIsSettingsOpen(true))}
+                {renderTileContent(tile, config, updateTile, () => setIsSettingsOpen(true))}
               </Tile>
             ))}
           </AnimatePresence>
@@ -1019,13 +812,6 @@ export default function App() {
                     <Youtube size={20} />
                   </button>
                   <button 
-                    onClick={() => addTile('slideshow')}
-                    className="p-2 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 rounded-full transition-all"
-                    title="Slideshow"
-                  >
-                    <ImageIcon size={20} />
-                  </button>
-                  <button 
                     onClick={() => addTile('app')}
                     className="p-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-full transition-all"
                     title="App hinzufügen"
@@ -1056,13 +842,6 @@ export default function App() {
               setEditingTileId(null);
             }}
             onClose={() => setEditingTileId(null)}
-          />
-        )}
-        {isFullscreenGallery && (
-          <FullscreenGallery 
-            urls={[...config.onlineImageUrls, ...config.localPhotoUrls, ...googlePhotos]} 
-            interval={config.slideshowInterval}
-            onClose={() => setIsFullscreenGallery(false)} 
           />
         )}
       </AnimatePresence>
@@ -1099,18 +878,14 @@ export default function App() {
 function renderTileContent(
   tile: TileConfig, 
   config: UserConfig, 
-  googlePhotos: string[] = [], 
   onUpdateTile: (id: string, updates: Partial<TileConfig>) => void,
   onOpenSettings: () => void
 ) {
-  const allPhotos = [...config.onlineImageUrls, ...config.localPhotoUrls, ...googlePhotos];
-  
   switch (tile.type) {
     case 'clock': return <ClockTile />;
     case 'weather': return <WeatherTile city={config.city} />;
     case 'calendar': return <CalendarTile />;
     case 'appointments': return <AppointmentsTile text={config.appointmentsText} onOpenSettings={onOpenSettings} />;
-    case 'slideshow': return <SlideshowTile urls={allPhotos} interval={config.slideshowInterval} onExpand={() => (window as any).openGallery()} />;
     case 'note': return <NoteTile content={tile.content || ''} onUpdate={(val) => onUpdateTile(tile.id, { content: val })} />;
     case 'app': return <AppTile type="app" url={tile.appLink || '#'} title={tile.title} />;
     case 'spotify': return <AppTile type="spotify" url={config.spotifyUrl} title="Spotify" />;
@@ -1136,42 +911,11 @@ const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
 
 const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave: (c: UserConfig) => void; onClose: () => void }) => {
   const [local, setLocal] = useState(config);
-  const [newImageUrl, setNewImageUrl] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyTheme = (themeId: string) => {
     const theme = THEMES[themeId];
     if (theme) {
       setLocal({ ...local, ...theme.config, layoutTheme: themeId });
-    }
-  };
-
-  const addImageUrl = () => {
-    if (newImageUrl && !local.onlineImageUrls.includes(newImageUrl)) {
-      setLocal({ ...local, onlineImageUrls: [...local.onlineImageUrls, newImageUrl] });
-      setNewImageUrl('');
-    }
-  };
-
-  const removeImageUrl = (url: string) => {
-    setLocal({ ...local, onlineImageUrls: local.onlineImageUrls.filter(u => u !== url) });
-  };
-
-  const handleLocalFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const urls = Array.from(files).map(file => URL.createObjectURL(file as any));
-      setLocal({ ...local, localPhotoUrls: [...local.localPhotoUrls, ...urls] });
-    }
-  };
-
-  const connectGooglePhotos = async () => {
-    try {
-      const res = await fetch('/api/auth/google/url');
-      const { url } = await res.json();
-      window.open(url, 'google_photos_auth', 'width=600,height=700');
-    } catch (err) {
-      console.error('Failed to get Google Photos auth URL:', err);
     }
   };
 
@@ -1233,121 +977,6 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
                   <option value="light">Hell</option>
                   <option value="dark">Dunkel</option>
                 </select>
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-sm font-bold uppercase tracking-widest opacity-40 mb-4">Slideshow Quellen</h3>
-            <div className="space-y-6">
-              {/* Google Photos */}
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <ImageIcon className="text-blue-400" size={20} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold">Google Photos</div>
-                    <div className="text-[10px] opacity-40">
-                      {local.googlePhotosTokens ? 'Verbunden' : 'Nicht verbunden'}
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={connectGooglePhotos}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                    local.googlePhotosTokens ? "bg-green-500/20 text-green-400" : "bg-blue-500 text-white"
-                  )}
-                >
-                  {local.googlePhotosTokens ? 'Neu verbinden' : 'Verbinden'}
-                </button>
-              </div>
-
-              {/* Local Tablet Photos */}
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <Monitor className="text-purple-400" size={20} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold">Tablet Fotos</div>
-                      <div className="text-[10px] opacity-40">{local.localPhotoUrls.length} Fotos ausgewählt</div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-xl text-xs font-bold"
-                  >
-                    Fotos wählen
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    multiple 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handleLocalFiles}
-                  />
-                </div>
-                {local.localPhotoUrls.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto pr-2">
-                    {local.localPhotoUrls.map((url, i) => (
-                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden">
-                        <img src={url} className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => setLocal({ ...local, localPhotoUrls: local.localPhotoUrls.filter(u => u !== url) })}
-                          className="absolute inset-0 bg-red-500/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Online URLs */}
-              <div className="space-y-4">
-                <label className="text-xs font-bold opacity-60">Online Bild URLs</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Bild URL hinzufügen..."
-                    value={newImageUrl} 
-                    onChange={e => setNewImageUrl(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-blue-500"
-                  />
-                  <button 
-                    onClick={addImageUrl}
-                    className="px-6 bg-blue-500 hover:bg-blue-600 rounded-2xl font-bold transition-all"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-2">
-                  {local.onlineImageUrls.map((url, i) => (
-                    <div key={i} className="relative group aspect-video rounded-xl overflow-hidden border border-white/10">
-                      <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      <button 
-                        onClick={() => removeImageUrl(url)}
-                        className="absolute inset-0 bg-red-500/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold opacity-60">Intervall (Sekunden)</label>
-                <input 
-                  type="number" min="1" value={local.slideshowInterval} 
-                  onChange={e => setLocal({ ...local, slideshowInterval: parseInt(e.target.value) || 5 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
-                />
               </div>
             </div>
           </section>
@@ -1567,6 +1196,29 @@ const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave
               type="color" value={local.glowColor || '#0071e3'} 
               onChange={e => setLocal({ ...local, glowColor: e.target.value })}
               className="w-full h-12 bg-transparent border-none cursor-pointer"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold opacity-60">Hintergrundbild URL</label>
+            <input 
+              type="text" value={local.bgImage || ''} 
+              onChange={e => setLocal({ ...local, bgImage: e.target.value })}
+              placeholder="https://images.unsplash.com/..."
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <label className="text-xs font-bold opacity-60">Hintergrund-Deckkraft</label>
+              <span className="text-xs font-mono">{Math.round((local.opacity || 0.4) * 100)}%</span>
+            </div>
+            <input 
+              type="range" min="0" max="1" step="0.1" 
+              value={local.opacity || 0.4} 
+              onChange={e => setLocal({ ...local, opacity: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
           </div>
         </div>
