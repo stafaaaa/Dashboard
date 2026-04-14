@@ -911,11 +911,23 @@ const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
 
 const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave: (c: UserConfig) => void; onClose: () => void }) => {
   const [local, setLocal] = useState(config);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyTheme = (themeId: string) => {
     const theme = THEMES[themeId];
     if (theme) {
       setLocal({ ...local, ...theme.config, layoutTheme: themeId });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocal({ ...local, dashboardBgImage: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -1070,6 +1082,26 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
                   <option value="float-high">Stark</option>
                 </select>
               </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold opacity-60">Dashboard Hintergrund</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" value={local.dashboardBgImage} 
+                    onChange={e => setLocal({ ...local, dashboardBgImage: e.target.value })}
+                    placeholder="Bild URL oder wählen..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm"
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded-2xl border border-white/10 transition-all"
+                  >
+                    <Monitor size={20} />
+                  </button>
+                  <input 
+                    type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" 
+                  />
+                </div>
+              </div>
               <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">Kiosk Modus</span>
@@ -1123,6 +1155,18 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
 
 const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave: (u: Partial<TileConfig>) => void; onClose: () => void }) => {
   const [local, setLocal] = useState(tile);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocal({ ...local, bgImage: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <motion.div 
@@ -1200,13 +1244,40 @@ const TileSettingsModal = ({ tile, onSave, onClose }: { tile: TileConfig; onSave
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold opacity-60">Hintergrundbild URL</label>
-            <input 
-              type="text" value={local.bgImage || ''} 
-              onChange={e => setLocal({ ...local, bgImage: e.target.value })}
-              placeholder="https://images.unsplash.com/..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
-            />
+            <label className="text-xs font-bold opacity-60">Hintergrundbild</label>
+            <div className="flex gap-2">
+              <input 
+                type="text" value={local.bgImage || ''} 
+                onChange={e => setLocal({ ...local, bgImage: e.target.value })}
+                placeholder="URL oder Bild wählen..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm"
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded-2xl border border-white/10 transition-all"
+                title="Bild vom Tablet wählen"
+              >
+                <Monitor size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+            {local.bgImage && (
+              <div className="relative w-full h-20 rounded-xl overflow-hidden border border-white/10 mt-2">
+                <img src={local.bgImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <button 
+                  onClick={() => setLocal({ ...local, bgImage: '' })}
+                  className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
