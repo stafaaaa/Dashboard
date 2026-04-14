@@ -88,7 +88,7 @@ const DEFAULT_CONFIG: UserConfig = {
   recipeUrl: 'https://www.chefkoch.de/',
   appointmentsText: '',
   globalAccent: '#0071e3',
-  globalTextColor: '#1d1d1f',
+  globalTextColor: '#ffffff',
   theme: 'dark',
   fontSize: 'medium',
   tileOpacity: 0.8,
@@ -553,7 +553,84 @@ const NoteTile = ({ content, onUpdate }: { content: string; onUpdate: (val: stri
   );
 };
 
-const SlideshowTile = ({ urls, interval }: { urls: string[]; interval: number }) => {
+const FullscreenGallery = ({ urls, onClose }: { urls: string[]; onClose: () => void }) => {
+  const [index, setIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<'slideshow' | 'grid'>('slideshow');
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] bg-black flex flex-col"
+    >
+      <div className="absolute top-6 right-6 z-[210] flex gap-4">
+        <button 
+          onClick={() => setViewMode(viewMode === 'slideshow' ? 'grid' : 'slideshow')}
+          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all"
+        >
+          {viewMode === 'slideshow' ? <LayoutGrid size={24} /> : <ImageIcon size={24} />}
+        </button>
+        <button 
+          onClick={onClose}
+          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      {viewMode === 'slideshow' ? (
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={urls[index]}
+              src={urls[index]}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              className="max-w-full max-h-full object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </AnimatePresence>
+          
+          <button 
+            onClick={() => setIndex((prev) => (prev - 1 + urls.length) % urls.length)}
+            className="absolute left-6 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-md transition-all"
+          >
+            <ChevronLeft size={32} />
+          </button>
+          <button 
+            onClick={() => setIndex((prev) => (prev + 1) % urls.length)}
+            className="absolute right-6 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-md transition-all"
+          >
+            <ChevronRight size={32} />
+          </button>
+          
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {urls.map((_, i) => (
+              <div key={i} className={cn("w-2 h-2 rounded-full transition-all", i === index ? "bg-white w-6" : "bg-white/20")} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-12 pt-24">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {urls.map((url, i) => (
+              <motion.div 
+                key={i}
+                whileHover={{ scale: 1.05 }}
+                onClick={() => { setIndex(i); setViewMode('slideshow'); }}
+                className="aspect-square rounded-2xl overflow-hidden cursor-pointer border border-white/10"
+              >
+                <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+const SlideshowTile = ({ urls, interval, onExpand }: { urls: string[]; interval: number; onExpand: () => void }) => {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -574,7 +651,7 @@ const SlideshowTile = ({ urls, interval }: { urls: string[]; interval: number })
   }
 
   return (
-    <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+    <div className="absolute inset-0 overflow-hidden rounded-[inherit] group">
       <AnimatePresence mode="wait">
         <motion.img
           key={urls[index]}
@@ -587,6 +664,17 @@ const SlideshowTile = ({ urls, interval }: { urls: string[]; interval: number })
           referrerPolicy="no-referrer"
         />
       </AnimatePresence>
+      
+      {/* Overlay Controls */}
+      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <button 
+          onClick={(e) => { e.stopPropagation(); onExpand(); }}
+          className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all transform hover:scale-110"
+        >
+          <Maximize2 size={24} />
+        </button>
+      </div>
+
       <div className="absolute bottom-2 right-2 flex gap-1">
         {urls.map((_, i) => (
           <div 
@@ -627,6 +715,7 @@ export default function App() {
   const [activeView, setActiveView] = useState('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingTileId, setEditingTileId] = useState<string | null>(null);
+  const [isFullscreenGallery, setIsFullscreenGallery] = useState(false);
   const [showNav, setShowNav] = useState(true);
   const [googlePhotos, setGooglePhotos] = useState<string[]>([]);
   const navTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -769,11 +858,16 @@ export default function App() {
 
   const currentTiles = useMemo(() => tiles.filter(t => t.view === activeView), [tiles, activeView]);
 
+  // Gallery Trigger
+  useEffect(() => {
+    (window as any).openGallery = () => setIsFullscreenGallery(true);
+  }, []);
+
   return (
     <div 
         className={cn(
           "fixed inset-0 flex flex-col overflow-hidden transition-all duration-700",
-          config.theme === 'dark' ? "bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900",
+          config.theme === 'dark' ? "bg-zinc-950" : "bg-zinc-50",
           config.fontFamily === 'sans' && "font-sans",
           config.fontFamily === 'space' && "font-space",
           config.fontFamily === 'serif' && "font-serif",
@@ -785,7 +879,8 @@ export default function App() {
         backgroundColor: config.dashboardBgColor,
         backgroundImage: config.dashboardBgImage ? `url(${config.dashboardBgImage})` : 'none',
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        color: config.globalTextColor
       }}
     >
       {/* Main Grid Area */}
@@ -918,6 +1013,12 @@ export default function App() {
             onClose={() => setEditingTileId(null)}
           />
         )}
+        {isFullscreenGallery && (
+          <FullscreenGallery 
+            urls={[...config.onlineImageUrls, ...config.localPhotoUrls, ...googlePhotos]} 
+            onClose={() => setIsFullscreenGallery(false)} 
+          />
+        )}
       </AnimatePresence>
 
       {/* Global CSS for Glow Effects */}
@@ -963,7 +1064,7 @@ function renderTileContent(
     case 'weather': return <WeatherTile city={config.city} />;
     case 'calendar': return <CalendarTile />;
     case 'appointments': return <AppointmentsTile text={config.appointmentsText} onOpenSettings={onOpenSettings} />;
-    case 'slideshow': return <SlideshowTile urls={allPhotos} interval={config.slideshowInterval} />;
+    case 'slideshow': return <SlideshowTile urls={allPhotos} interval={config.slideshowInterval} onExpand={() => (window as any).openGallery()} />;
     case 'note': return <NoteTile content={tile.content || ''} onUpdate={(val) => onUpdateTile(tile.id, { content: val })} />;
     case 'app': return <AppTile type="app" url={tile.appLink || '#'} title={tile.title} />;
     case 'spotify': return <AppTile type="spotify" url={config.spotifyUrl} title="Spotify" />;
@@ -1269,6 +1370,17 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
                   <option value="serif">Playfair Display (Serif)</option>
                   <option value="mono">JetBrains Mono (Technisch)</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold opacity-60">Schriftfarbe</label>
+                <div className="flex gap-2 items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-2">
+                  <input 
+                    type="color" value={local.globalTextColor} 
+                    onChange={e => setLocal({ ...local, globalTextColor: e.target.value })}
+                    className="w-10 h-10 rounded-lg bg-transparent border-none cursor-pointer"
+                  />
+                  <span className="text-xs font-mono uppercase">{local.globalTextColor}</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold opacity-60">3D Effekt</label>
