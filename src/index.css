@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --glow-color: #0071e3;
+  --glow-spread: 8px;
+  --glow-blur: 20px;
+}
+
+body {
+  @apply overflow-hidden select-none touch-none bg-zinc-950 text-zinc-100;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom Scrollbar for tiles */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-white/10 backdrop-blur-xl border border-white/10;
+}
+
+/* Glow Animations (handled in App.tsx style tag but adding base classes here) */
+.glow-pulse {
+  box-shadow: 0 0 var(--glow-spread) var(--glow-color);
+}
+
+.glow-static {
+  box-shadow: 0 0 var(--glow-spread) var(--glow-color);
+}
+
+/* Tablet Optimizations */
+@media (orientation: portrait) {
+  .dashboard-warning {
+    display: flex !important;
+  }
+}
+
+.dashboard-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  color: #fff;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}

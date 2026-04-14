@@ -1,0 +1,6 @@
+{
+  "name": "Remix: Tablet Dashboard PWA",
+  "description": "Ein hoch-optimiertes, Tablet-zentriertes Personal Dashboard mit Wetter, Kalender, Slideshow und App-Integrationen. Optimiert für Landscape-Modus und Touch-Bedienung.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
