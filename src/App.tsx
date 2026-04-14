@@ -66,6 +66,7 @@ interface UserConfig {
   globalGlow: 'none' | 'pulse' | 'static' | 'rainbow' | 'tap';
   globalGlowColor: string;
   globalGlowSize: number;
+  events: Record<string, string[]>;
 }
 
 // --- Constants ---
@@ -99,7 +100,8 @@ const DEFAULT_CONFIG: UserConfig = {
   fontFamily: 'sans',
   globalGlow: 'none',
   globalGlowColor: '#0071e3',
-  globalGlowSize: 2
+  globalGlowSize: 2,
+  events: {}
 };
 
 const THEMES: Record<string, { name: string; config: Partial<UserConfig> }> = {
@@ -484,7 +486,7 @@ function getWeatherEmoji(code: number) {
   return '⛈️';
 }
 
-const CalendarTile = () => {
+const CalendarTile = ({ events, onAddEvent }: { events: Record<string, string[]>; onAddEvent: (date: string, text: string) => void }) => {
   const [viewDate, setViewDate] = useState(new Date());
   const today = new Date();
   
@@ -499,6 +501,15 @@ const CalendarTile = () => {
 
   const changeMonth = (offset: number) => {
     setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1));
+  };
+
+  const handleDayClick = (day: number | null) => {
+    if (!day) return;
+    const dateStr = `${viewDate.getFullYear()}-${(viewDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const text = prompt(`Termin für den ${day}.${viewDate.getMonth() + 1}.${viewDate.getFullYear()} eingeben:`);
+    if (text) {
+      onAddEvent(dateStr, text);
+    }
   };
 
   return (
@@ -522,16 +533,27 @@ const CalendarTile = () => {
           const isToday = day === today.getDate() && 
                           viewDate.getMonth() === today.getMonth() && 
                           viewDate.getFullYear() === today.getFullYear();
+          
+          const dateStr = day ? `${viewDate.getFullYear()}-${(viewDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}` : '';
+          const hasEvents = day && events[dateStr] && events[dateStr].length > 0;
+
           return (
             <div 
               key={i} 
+              onClick={() => handleDayClick(day)}
               className={cn(
-                "flex items-center justify-center text-xs rounded-lg aspect-square transition-colors",
+                "flex flex-col items-center justify-center text-xs rounded-lg aspect-square transition-colors relative cursor-pointer",
                 isToday ? "bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/40" : "hover:bg-white/5",
-                !day && "opacity-0"
+                !day && "opacity-0 pointer-events-none"
               )}
             >
               {day}
+              {hasEvents && !isToday && (
+                <div className="absolute bottom-1 w-1 h-1 bg-blue-400 rounded-full" />
+              )}
+              {hasEvents && isToday && (
+                <div className="absolute bottom-1 w-1 h-1 bg-white rounded-full" />
+              )}
             </div>
           );
         })}
@@ -540,16 +562,29 @@ const CalendarTile = () => {
   );
 };
 
-const AppointmentsTile = ({ text, onOpenSettings }: { text: string; onOpenSettings: () => void }) => {
-  const appointments = text.split('\n').filter(l => l.trim()).slice(0, 5);
+const AppointmentsTile = ({ text, events, onOpenSettings }: { text: string; events: Record<string, string[]>; onOpenSettings: () => void }) => {
+  const manualAppointments = text.split('\n').filter(l => l.trim());
+  
+  // Get upcoming events from calendar
+  const todayStr = new Date().toISOString().split('T')[0];
+  const calendarAppointments = Object.entries(events)
+    .filter(([date]) => date >= todayStr)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([date, evs]) => {
+      const d = new Date(date);
+      const dateLabel = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+      return evs.map(e => `${dateLabel}: ${e}`);
+    });
+
+  const allAppointments = [...calendarAppointments, ...manualAppointments].slice(0, 6);
 
   return (
     <div 
       className="flex flex-col gap-2 overflow-y-auto pr-1 cursor-pointer group h-full"
       onClick={onOpenSettings}
     >
-      {appointments.length > 0 ? (
-        appointments.map((app, i) => (
+      {allAppointments.length > 0 ? (
+        allAppointments.map((app, i) => (
           <div key={i} className="bg-white/5 p-2 rounded-xl border border-white/5 text-sm group-hover:bg-white/10 transition-colors">
             {app}
           </div>
@@ -746,7 +781,7 @@ export default function App() {
                 onEdit={setEditingTileId}
                 onDelete={deleteTile}
               >
-                {renderTileContent(tile, config, updateTile, () => setIsSettingsOpen(true))}
+                {renderTileContent(tile, config, updateTile, () => setIsSettingsOpen(true), setConfig)}
               </Tile>
             ))}
           </AnimatePresence>
@@ -920,13 +955,32 @@ function renderTileContent(
   tile: TileConfig, 
   config: UserConfig, 
   onUpdateTile: (id: string, updates: Partial<TileConfig>) => void,
-  onOpenSettings: () => void
+  onOpenSettings: () => void,
+  setConfig: React.Dispatch<React.SetStateAction<UserConfig>>
 ) {
   switch (tile.type) {
     case 'clock': return <ClockTile />;
     case 'weather': return <WeatherTile city={config.city} />;
-    case 'calendar': return <CalendarTile />;
-    case 'appointments': return <AppointmentsTile text={config.appointmentsText} onOpenSettings={onOpenSettings} />;
+    case 'calendar': return (
+      <CalendarTile 
+        events={config.events || {}} 
+        onAddEvent={(date, text) => {
+          setConfig(prev => {
+            const newEvents = { ...prev.events };
+            if (!newEvents[date]) newEvents[date] = [];
+            newEvents[date] = [...newEvents[date], text];
+            return { ...prev, events: newEvents };
+          });
+        }} 
+      />
+    );
+    case 'appointments': return (
+      <AppointmentsTile 
+        text={config.appointmentsText} 
+        events={config.events || {}}
+        onOpenSettings={onOpenSettings} 
+      />
+    );
     case 'note': return <NoteTile content={tile.content || ''} onUpdate={(val) => onUpdateTile(tile.id, { content: val })} />;
     case 'app': return <AppTile type="app" url={tile.appLink || '#'} title={tile.title} />;
     case 'spotify': return <AppTile type="spotify" url={config.spotifyUrl} title="Spotify" />;
