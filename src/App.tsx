@@ -66,7 +66,8 @@ interface UserConfig {
 
 // --- Constants ---
 const DEFAULT_TILES: TileConfig[] = [
-  { id: '1', type: 'weather', title: 'Wetter & Zeit', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'pulse', glowColor: '#0071e3' },
+  { id: '1', type: 'weather', title: 'Wetter', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'pulse', glowColor: '#0071e3' },
+  { id: '2', type: 'clock', title: 'Uhrzeit', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'none' },
   { id: '3', type: 'calendar', title: 'Kalender', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'static', glowColor: '#af52de' },
   { id: '4', type: 'appointments', title: 'Termine', colSpan: 2, rowSpan: 2, view: 'home', glowEffect: 'static', glowColor: '#ff9f0a' },
   { id: '5', type: 'spotify', title: 'Spotify', colSpan: 2, rowSpan: 1, view: 'media', glowEffect: 'pulse', glowColor: '#28cd41' },
@@ -782,7 +783,35 @@ export default function App() {
                 <Settings size={20} />
               </button>
               {editMode && (
-                <div className="flex gap-1 bg-white/5 p-1 rounded-full border border-white/10">
+                <div className="flex gap-1 bg-white/5 p-1 rounded-full border border-white/10 overflow-x-auto max-w-[300px] no-scrollbar">
+                  <button 
+                    onClick={() => addTile('clock')}
+                    className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-full transition-all"
+                    title="Uhr"
+                  >
+                    <Clock size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('weather')}
+                    className="p-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-full transition-all"
+                    title="Wetter"
+                  >
+                    <Cloud size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('calendar')}
+                    className="p-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-full transition-all"
+                    title="Kalender"
+                  >
+                    <CalendarIcon size={20} />
+                  </button>
+                  <button 
+                    onClick={() => addTile('appointments')}
+                    className="p-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-full transition-all"
+                    title="Termine"
+                  >
+                    <StickyNote size={20} />
+                  </button>
                   <button 
                     onClick={() => addTile('note')}
                     className="p-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-full transition-all"
@@ -832,6 +861,10 @@ export default function App() {
             config={config} 
             onSave={setConfig} 
             onClose={() => setIsSettingsOpen(false)} 
+            onResetTiles={() => {
+              setTiles(DEFAULT_TILES);
+              localStorage.setItem('tablet_dash_tiles', JSON.stringify(DEFAULT_TILES));
+            }}
           />
         )}
         {editingTileId && (
@@ -909,7 +942,7 @@ const NavButton = ({ active, onClick, icon, label }: { active: boolean; onClick:
   </button>
 );
 
-const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave: (c: UserConfig) => void; onClose: () => void }) => {
+const SettingsModal = ({ config, onSave, onClose, onResetTiles }: { config: UserConfig; onSave: (c: UserConfig) => void; onClose: () => void; onResetTiles: () => void }) => {
   const [local, setLocal] = useState(config);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1130,6 +1163,16 @@ const SettingsModal = ({ config, onSave, onClose }: { config: UserConfig; onSave
             className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-3xl transition-all shadow-xl shadow-blue-500/20"
           >
             Speichern
+          </button>
+          <button 
+            onClick={() => {
+              if (confirm('Möchtest du alle Kacheln auf Standard zurücksetzen?')) {
+                onResetTiles();
+              }
+            }}
+            className="flex-1 bg-orange-500/20 text-orange-400 font-bold py-4 rounded-3xl transition-all"
+          >
+            Kacheln Reset
           </button>
           <button 
             onClick={() => {
