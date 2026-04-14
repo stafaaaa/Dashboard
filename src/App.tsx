@@ -578,9 +578,18 @@ const NoteTile = ({ content, onUpdate }: { content: string; onUpdate: (val: stri
   );
 };
 
-const FullscreenGallery = ({ urls, onClose }: { urls: string[]; onClose: () => void }) => {
+const FullscreenGallery = ({ urls, interval, onClose }: { urls: string[]; interval: number; onClose: () => void }) => {
   const [index, setIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'slideshow' | 'grid'>('slideshow');
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (viewMode !== 'slideshow' || isPaused || urls.length <= 1) return;
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % urls.length);
+    }, interval * 1000);
+    return () => clearInterval(timer);
+  }, [urls, interval, viewMode, isPaused]);
 
   return (
     <motion.div 
@@ -589,14 +598,24 @@ const FullscreenGallery = ({ urls, onClose }: { urls: string[]; onClose: () => v
     >
       <div className="absolute top-6 right-6 z-[210] flex gap-4">
         <button 
+          onClick={() => setIsPaused(!isPaused)}
+          className={cn(
+            "p-3 rounded-full backdrop-blur-md transition-all",
+            isPaused ? "bg-red-500/20 text-red-400" : "bg-white/10 text-white hover:bg-white/20"
+          )}
+          title={isPaused ? "Wiedergabe starten" : "Wiedergabe pausieren"}
+        >
+          {isPaused ? <Play size={24} /> : <Pause size={24} />}
+        </button>
+        <button 
           onClick={() => setViewMode(viewMode === 'slideshow' ? 'grid' : 'slideshow')}
-          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all"
+          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all text-white"
         >
           {viewMode === 'slideshow' ? <LayoutGrid size={24} /> : <ImageIcon size={24} />}
         </button>
         <button 
           onClick={onClose}
-          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all"
+          className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all text-white"
         >
           <X size={24} />
         </button>
@@ -1042,6 +1061,7 @@ export default function App() {
         {isFullscreenGallery && (
           <FullscreenGallery 
             urls={[...config.onlineImageUrls, ...config.localPhotoUrls, ...googlePhotos]} 
+            interval={config.slideshowInterval}
             onClose={() => setIsFullscreenGallery(false)} 
           />
         )}
